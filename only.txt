@@ -1,0 +1,4 @@
+# here you can add the only pages you want to be reversed!
+# example
+#23
+#34

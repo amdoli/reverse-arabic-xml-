@@ -1,0 +1,7 @@
+{
+    "_comment": "Please if you want to switch one of them switch them both! [true-false] or [false-true]",
+    "method": {
+        "all_except": false,
+        "only": false
+    }
+}
