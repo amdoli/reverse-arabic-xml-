@@ -61,33 +61,51 @@ class Xml:
                 return user_input
             else:
                 print("Please try again")
+    
+    def load_content(self):     # to load or get the content from the file
+        if os.path.exists(self.filename):
+            lines=[]
+            with open(self.filename,'r') as f:
+                for line in f:
+                    lines.append(line)
+            return lines
+        else:
+            print("didn't find it")
+            return []
 
     def reverse(self): # reverse arabic data
-        arabic_pattern = r'[\u0600-\u06FF\uFE00-\uFEFF]+'
+        arabic_pattern = r'[\u0600-\u06FF\uFE00-\uFEFF](?:[\u0600-\u06FF\uFE00-\uFEFF \!\.\,]*[\u0600-\u06FF\uFE00-\uFEFF\!\.])?'
         if self.check():
-            counter=0
-            with open(self.filename,'r',encoding='utf-8') as f:
-                print(f"\n## READING IN: {self.filename} ##\n\n")
-                old_line_num=1
-                for line_num , line in enumerate(f,1):
-                    updated_line = line
-                    checks=re.finditer(arabic_pattern,line)   # check if pattern can applie on the line
-                    for check in checks:
-                        word=check.group(0)
-                        reversed_word=word[::-1] 
-                        start,end=check.span()
-                        updated_line=updated_line[:start]+reversed_word+updated_line[:end]
-                        #print(f"start={start} end={end}")
-                        self.append(updated_line,line_num)
-                        #print(f"{word[::-1]} {line_num}")                     
+            lines=self.load_content()   # first get the whole content
+            print(f"\n## READING IN: {self.filename} ##\n\n")
+            for line_num , line in enumerate(lines,0):
+                updated_line = line
+                matches=list(re.finditer(arabic_pattern,line))   # check if pattern can applie on the line
+                for match in reversed(matches): # start from the end to not destroy the spaces and postion
+                    content=match.group(0)
+                    if any('\u0600' <= c <= '\u06FF' or '\uFE70' <= c <= '\uFEFF' for c in content):    # to catch only arabic letters
+                        reversed_content=content[::-1] 
+                        start,end=match.span()
+                        updated_line=updated_line[:start]+reversed_content+updated_line[end:]
+                lines[line_num]=updated_line
+            self.writee(lines)
+                    #print(updated_line)
+                    #print(f"num={num_of_word} list={len(list_of_words)}")
+                    #print(f"start={start} end={end}")
+                    #print(f"{line_num}-{updated_line}")
+                    #print(f"{word[::-1]} {line_num}")                     
         else:
             print(f"{self.filename} not found or not in a directory!")
-    def append(self,updated_line,line_num):
-        shift_down="\n"*line_num
-        with open(self.filename,"a") as f:
-            f.write(f"{shift_down}{updated_line}")
+
+    def writee(self,lines,):    # to overwrite the file with only the updated arabic
+        if os.path.exists(self.filename):
+            with open(self.filename,"w",encoding="utf-8") as f:
+                for i in range(len(lines)):
+                    f.write(lines[i])
+        else:
+            print(f"{self.filename} not found!")
         
-    def check_json(self):
+    def check_json(self):               # still not available this idea is to leet the script be smarter
         if os.path.exists(JSON_FILE):
             with open(JSON_FILE,"r")as f:
                 operation=json.load(f)
@@ -142,6 +160,7 @@ if __name__=="__main__":
     xml_file = Xml()
     #xml_file.check_json()
     #xml_file.check_config(4)
+    #xml_file.load_content()
     xml_file.reverse()
 
 #if user_input_match:
