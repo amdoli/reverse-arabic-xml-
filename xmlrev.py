@@ -75,19 +75,35 @@ class Xml:
 
     def reverse(self): # reverse arabic data
         arabic_pattern = r'[\u0600-\u06FF\uFE00-\uFEFF](?:[\u0600-\u06FF\uFE00-\uFEFF \!\.\,]*[\u0600-\u06FF\uFE00-\uFEFF\!\.])?'
+
         if self.check():
             lines=self.load_content()   # first get the whole content
             print(f"\n## READING IN: {self.filename} ##\n\n")
-            for line_num , line in enumerate(lines,0):
+
+            for line_num , line in enumerate(lines,1):
+
+                # all_except.conf condition
+                if self.check_json() == 0:
+                    if self.all_except(line_num):
+                        continue
+
+                # only.conf condition
+                elif self.check_json() == 1:
+                    if not self.only(line_num):
+                        continue
+
                 updated_line = line
                 matches=list(re.finditer(arabic_pattern,line))   # check if pattern can applie on the line
+
                 for match in reversed(matches): # start from the end to not destroy the spaces and postion
                     content=match.group(0)
+
                     if any('\u0600' <= c <= '\u06FF' or '\uFE70' <= c <= '\uFEFF' for c in content):    # to catch only arabic letters
                         reversed_content=content[::-1] 
+
                         start,end=match.span()
                         updated_line=updated_line[:start]+reversed_content+updated_line[end:]
-                lines[line_num]=updated_line
+                lines[line_num-1]=updated_line
             self.writee(lines)
                     #print(updated_line)
                     #print(f"num={num_of_word} list={len(list_of_words)}")
@@ -119,22 +135,25 @@ class Xml:
             print("1-All_except")
             print("2-Only")
             print("3-None of them (reverse everything)")
+
             answer=input("\nPlease chose on of the three:\n")
             if answer in ("1","all","all_except","except","ALL_EXCEPT","ALL","All_except","All except","all except"):
                 operation["method"]["only"] = False
                 self.save(operation)
-                return 0
+                return 0 
+            
             elif answer in ("2","only","ONLY","o","O"):
                 operation["method"]["all_except"] = False
                 self.save(operation)
                 return 1
+            
             elif answer in ("3","NONE","None","none","None of them","None of them (reverse everything)","None_of_them",""):
                 operation["method"]["all_except"] = False
                 operation["method"]["only"] = False
                 self.save(operation)
                 return 2
 
-    def check_config(self,line_number): # still under devoloping
+    def all_except(self,line_number): # still under devoloping |||||||||
         list_of_numbers=[]
         with open("all_except.txt",'r') as f:
             for lines in f:
@@ -142,8 +161,23 @@ class Xml:
                 if line[0]!="#":
                     if line.isdigit():
                         list_of_numbers.append(line)
-                        print(line)
-        if line_number in list_of_numbers:
+                        print(list_of_numbers)
+
+        if str(line_number) in list_of_numbers:
+            return True
+        else:
+            return False
+        
+    def only(self,line_number):
+        list_of_numbers=[]
+        with open("only.txt",'r') as f:
+            for lines in f:
+                line=lines
+                if line[0]!="#":
+                    if line.isdigit():
+                        list_of_numbers.append(line)
+                        
+        if str(line_number) in list_of_numbers:
             return True
         else:
             return False
