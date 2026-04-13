@@ -161,7 +161,6 @@ class Xml:
                 if line[0]!="#":
                     if line.isdigit():
                         list_of_numbers.append(line)
-                        print(list_of_numbers)
 
         if str(line_number) in list_of_numbers:
             return True
