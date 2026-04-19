@@ -5,15 +5,16 @@ import subprocess
 import json
 import time
 
-def install_packages(package):     # check for dependenceys
-        print(f"Dependency '{package}' not found. Installing...")
-        subprocess.check_call([sys.executable,"-m","pip","install",package])
-        print(f"{package} installed succesfully!")
+def install_packages():     # check for dependenceys
+        for package in REQ_PACKAGES:
+            print(f"Dependency '{package}' not found. Installing...")
+            subprocess.check_call([sys.executable,"-m","pip","install",package])
+            print(f"{package} installed succesfully!")
 
 try:                                                  
     from arabic_reshaper import reshape
-except ImportError:
-    install_packages(arabic-reshaper)
+except ModuleNotFoundError:
+    install_packages()
 
 
 # if you want to add other packages insert them here
