@@ -10,10 +10,10 @@ def install_packages(package):     # check for dependenceys
         subprocess.check_call([sys.executable,"-m","pip","install",package])
         print(f"{package} installed succesfully!")
 
-#try:                                                   maybe later I will need arabic_reshaper
-#    from arabic_reshaper import reshape
-#except ImportError:
-#    install_packages(arabic-reshaper)
+try:                                                  
+    from arabic_reshaper import reshape
+except ImportError:
+    install_packages(arabic-reshaper)
 
 
 # if you want to add other packages insert them here
@@ -22,22 +22,13 @@ REQ_PACKAGES = [
 ]
 
 JSON_FILE='config.json'
+ALL_EXCEPT_FILE="all_except.txt"
+ONLY_FILE="only.txt"
 
-class Xml:
+class FileHandler:
     def __init__(self):
-        self.filename=self.setfile()     # get the file from setfile function
-        self.operation=self.check_json() # check if there are any method enabled
-    
-    def check(self):       # check if self.filename is real then return true
-        if self.filename != "":
-            return True
-        else:
-            return False
-        
-    def save(self,operation):
-        with open(JSON_FILE,"w") as f:
-            json.dump(operation,f,indent=4)
-            
+        self.filename = self.setfile()
+
     def setfile(self):      # check for which file do you want
         files=[] 
         for file in os.listdir():
@@ -62,76 +53,41 @@ class Xml:
             else:
                 print("Please try again")
     
-    def load_content(self):     # to load or get the content from the file
-        if os.path.exists(self.filename):
-            lines=[]
-            with open(self.filename,'r') as f:
-                for line in f:
-                    lines.append(line)
-            return lines
+    def check(self):       # check if self.filename is real then return true
+        if self.filename != "":
+            return True
         else:
-            print("didn't find it")
-            return []
-
-    def reverse(self): # reverse arabic data
-        arabic_pattern = r'[\u0600-\u06FF\uFE00-\uFEFF](?:[\u0600-\u06FF\uFE00-\uFEFF \!\.\,]*[\u0600-\u06FF\uFE00-\uFEFF\!\.])?'
-
-        if self.check():
-            lines=self.load_content()   # first get the whole content
-            print(f"\n## READING IN: {self.filename} ##\n\n")
-
-            for line_num , line in enumerate(lines,1):
-
-                # all_except.conf condition
-                if self.check_json() == 0:
-                    if self.all_except(line_num):
-                        continue
-
-                # only.conf condition
-                elif self.check_json() == 1:
-                    if not self.only(line_num):
-                        continue
-
-                updated_line = line
-                matches=list(re.finditer(arabic_pattern,line))   # check if pattern can applie on the line
-
-                for match in reversed(matches): # start from the end to not destroy the spaces and postion
-                    content=match.group(0)
-
-                    if any('\u0600' <= c <= '\u06FF' or '\uFE70' <= c <= '\uFEFF' for c in content):    # to catch only arabic letters
-                        reversed_content=content[::-1] 
-
-                        start,end=match.span()
-                        updated_line=updated_line[:start]+reversed_content+updated_line[end:]
-                lines[line_num-1]=updated_line
-            self.writee(lines)
-                    #print(updated_line)
-                    #print(f"num={num_of_word} list={len(list_of_words)}")
-                    #print(f"start={start} end={end}")
-                    #print(f"{line_num}-{updated_line}")
-                    #print(f"{word[::-1]} {line_num}")                     
-        else:
-            print(f"{self.filename} not found or not in a directory!")
-
-    def writee(self,lines,):    # to overwrite the file with only the updated arabic
-        if os.path.exists(self.filename):
+            return False
+    
+    def writee(self,lines):    # to overwrite the file with only the updated arabic
+        if os.path.exists(self.filename): 
             with open(self.filename,"w",encoding="utf-8") as f:
                 for i in range(len(lines)):
                     f.write(lines[i])
-        else:
-            print(f"{self.filename} not found!")
-        
-    def check_json(self):               # still not available this idea is to leet the script be smarter
-        if os.path.exists(JSON_FILE):
-            with open(JSON_FILE,"r")as f:
-                operation=json.load(f)
+
+class Config:
+    def __init__(self):
+        self.json_content=self.load_json()
+
+    def save(self,operation):
+        with open(JSON_FILE,"w") as f:
+            json.dump(operation,f,indent=4)
+
+    def chech_methods(self):     # to check methodes 
+        # loads json content
+        operation=self.json_content 
+
         if operation["method"]["all_except"] == True and operation["method"]["only"] == False:
             return 0
+        
         elif operation["method"]["only"] == True and operation["method"]["all_except"] == False:
             return 1
+        
+        # here there is a problem so the app make sure that never happen!
         elif operation["method"]["only"] == True and operation["method"]["all_except"] == True:
             print("You have both methods True!\n")
             time.sleep(0.5)
+
             print("1-All_except")
             print("2-Only")
             print("3-None of them (reverse everything)")
@@ -152,52 +108,133 @@ class Xml:
                 operation["method"]["only"] = False
                 self.save(operation)
                 return 2
-
-    def all_except(self,line_number): # still under devoloping |||||||||
-        list_of_numbers=[]
-        with open("all_except.txt",'r') as f:
-            for lines in f:
-                line=lines
-                if line[0]!="#":
-                    if line.isdigit():
-                        list_of_numbers.append(line)
-
-        if str(line_number) in list_of_numbers:
+    
+    def check_reshape(self):
+        content=self.json_content # Load json content
+        if content["features"]["reshape"]: 
             return True
         else:
             return False
+    
+    def check_reverse(self):
+        content=self.json_content # Load json content
+        if content["features"]["reverse"]: 
+            return True
+        else:
+            return False
+    
+    def load_json(self):
+        if os.path.exists(JSON_FILE):
+            with open(JSON_FILE,"r") as f:
+                return json.load(f)
+        else:
+            print(f"Error. {JSON_FILE} does not exist!")
+            return {}
+        
+    def all_except(self,line_number): 
+        list_of_numbers=[]
+        if os.path.exists(ALL_EXCEPT_FILE):
+            with open(ALL_EXCEPT_FILE,'r') as f:
+                for lines in f:
+                    line=lines
+                    if line[0]!="#":
+                        if line.isdigit():
+                            list_of_numbers.append(line)
+
+            if str(line_number) in list_of_numbers:
+                return True
+            else:
+                return False
+        else:
+            print("Error.  all_except.txt file does not exist!")
         
     def only(self,line_number):
         list_of_numbers=[]
-        with open("only.txt",'r') as f:
-            for lines in f:
-                line=lines
-                if line[0]!="#":
-                    if line.isdigit():
-                        list_of_numbers.append(line)
-                        
-        if str(line_number) in list_of_numbers:
-            return True
+        if os.path.exists(ONLY_FILE):
+            with open(ONLY_FILE,'r') as f:
+                for lines in f:
+                    line=lines
+                    if line[0]!="#":
+                        if line.isdigit():
+                            list_of_numbers.append(line)
+                            
+            if str(line_number) in list_of_numbers:
+                return True
+            else:
+                return False
         else:
-            return False
-        
-def install_packages():     # check for dependenceys
-    for package in REQ_PACKAGES:
-        print(f"Dependency '{package}' not found. Installing...")
-        subprocess.check_call([sys.executable,"-m","pip","install",package])
-        print(f"{package} installed succesfully!")
+            print("Error.  only.txt file does not exist!")
 
+class Xml:
+    def __init__(self,FileHandler,Config):
+        # classes
+        self.file_handler=FileHandler     # make it in touch with FileHandler class
+        self.config=Config                # make it in touch with Config class
+
+        self.filename=self.file_handler.filename   # for readability
+        self.operation=self.config.chech_methods() # check if there are any method enabled
     
+    def load_content(self):     # to load or get the content from the file
+        if os.path.exists(self.filename): #
+            lines=[]
+            with open(self.filename,'r') as f: #
+                for line in f:
+                    lines.append(line)
+            return lines
+        
+        else:
+            print("didn't find it")
+            return []
+    
+    def reshapes(self,content):
+        return reshape(content)
+
+    def reverse(self): # reverse arabic data
+        arabic_pattern = r'[\u0600-\u06FF\uFE00-\uFEFF](?:[\u0600-\u06FF\uFE00-\uFEFF \!\.\,]*[\u0600-\u06FF\uFE00-\uFEFF\!\.])?'
+
+        if self.file_handler.check():
+            lines=self.load_content()   # first get the whole content
+            print(f"\n## READING IN: {self.filename} ##\n\n") #
+
+            for line_num , line in enumerate(lines,1):
+
+                # all_except.conf condition
+                if self.config.chech_methods() == 0:
+                    if self.config.all_except(line_num):
+                        continue
+
+                # only.conf condition
+                elif self.config.chech_methods() == 1:
+                    if not self.config.only(line_num):
+                        continue
+
+                updated_line = line
+                matches=list(re.finditer(arabic_pattern,line))   # check if pattern can applie on the line
+
+                for match in reversed(matches): # start from the end to not destroy the spaces and postion
+                    content=match.group(0)
+                    # if reshape feature is true in json file it will reshape
+                    if self.config.check_reshape():
+                        content=reshape(content)
+
+                    if any('\u0600' <= c <= '\u06FF' or '\uFE70' <= c <= '\uFEFF' for c in content):    # to catch only arabic letters
+
+                        if self.config.check_reverse():
+                            content=content[::-1] # reversed content
+
+                        start,end=match.span()
+                        updated_line=updated_line[:start]+content+updated_line[end:]
+
+                lines[line_num-1]=updated_line
+
+            self.file_handler.writee(lines)
+                 
+        else:
+            print(f"{self.filename} not found or not in a directory!")
+          
 if __name__=="__main__":
     print("\033[2J\033[H")
-    xml_file = Xml()
-    #xml_file.check_json()
-    #xml_file.check_config(4)
-    #xml_file.load_content()
+    file_handler=FileHandler()
+    config=Config()
+    xml_file = Xml(file_handler,config)
     xml_file.reverse()
-
-#if user_input_match:
-  #  for words in user_input_match:
-   #     print(f"{words}\n")
-
-    

@@ -3,5 +3,9 @@
     "method": {
         "all_except": false,
         "only": false
+    },
+    "features": {
+        "reshape": false,
+        "reverse": true
     }
 }
