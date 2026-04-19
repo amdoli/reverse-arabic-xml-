@@ -20,6 +20,7 @@ except ModuleNotFoundError:
 # if you want to add other packages insert them here
 REQ_PACKAGES = [          
     "arabic-reshaper",
+    "customtkinter"
 ]
 
 JSON_FILE='config.json'
