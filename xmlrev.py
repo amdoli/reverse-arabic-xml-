@@ -177,7 +177,7 @@ class Xml:
     def load_content(self):     # to load or get the content from the file
         if os.path.exists(self.filename): #
             lines=[]
-            with open(self.filename,'r') as f: #
+            with open(self.filename,'r',encoding="utf-8") as f: #
                 for line in f:
                     lines.append(line)
             return lines
