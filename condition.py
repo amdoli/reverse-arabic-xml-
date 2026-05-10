@@ -14,6 +14,11 @@ except ModuleNotFoundError:
     install_Package("customtkinter")
 
 conf=Config()
+
+if not conf.is_json_available:
+    print("config.json IS MISSING!")
+    exit()
+
 data=conf.load_json()
 
 all_except=data["method"]["all_except"]

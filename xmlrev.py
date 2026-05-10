@@ -5,6 +5,11 @@ import subprocess
 import json
 import time
 
+REQ_PACKAGES = [          
+    "arabic-reshaper",
+    "customtkinter"
+]
+
 def install_packages():     # check for dependenceys
         for package in REQ_PACKAGES:
             print(f"Dependency '{package}' not found. Installing...")
@@ -18,10 +23,6 @@ except ModuleNotFoundError:
 
 
 # if you want to add other packages insert them here
-REQ_PACKAGES = [          
-    "arabic-reshaper",
-    "customtkinter"
-]
 
 JSON_FILE='config.json'
 ALL_EXCEPT_FILE="all_except.txt"
@@ -30,16 +31,23 @@ ONLY_FILE="only.txt"
 class FileHandler:
     def __init__(self):
         self.filename = self.setfile()
+        self.terminate = False if self.filename else True
 
     def setfile(self):      # check for which file do you want
         files=[] 
+        file_found = False
         for file in os.listdir():
             ext=file.split(".")
             num_of_dot=file.count(".")  # count how many . to print the . for extenstion if there are multible dots
             if "xml" in ext[num_of_dot]:
                 files.append(file)
-        if len(files)==0:   # if there are no files return none
-            return None
+                file_found = True
+
+        if not file_found:
+            print("\n--- THERE ARE NO XML FILE IN THIS CURRENT DIRECTORY! ---\n")
+            time.sleep(1)
+            return "" 
+        
         counter=0
         print(f"---------------------------\n")
         for file in files:
@@ -70,6 +78,7 @@ class FileHandler:
 class Config:
     def __init__(self):
         self.json_content=self.load_json()
+        self.is_json_available = True if self.json_content else False
 
     def save(self,operation):
         with open(JSON_FILE,"w") as f:
@@ -78,6 +87,13 @@ class Config:
     def chech_methods(self):     # to check methodes 
         # loads json content
         operation=self.json_content 
+
+        if not self.is_json_available:
+            print(f"\n{JSON_FILE} FILE IS MISSING!")
+            time.sleep(1)
+            print("so The program will run at the normal settings at this time being!")
+            time.sleep(3)
+            return 2
 
         if operation["method"]["all_except"] == True and operation["method"]["only"] == False:
             return 0
@@ -130,7 +146,6 @@ class Config:
             with open(JSON_FILE,"r") as f:
                 return json.load(f)
         else:
-            print(f"Error. {JSON_FILE} does not exist!")
             return {}
         
     def all_except(self,line_number): 
@@ -170,8 +185,8 @@ class Config:
 class Xml:
     def __init__(self,FileHandler,Config):
         # classes
-        self.file_handler=FileHandler     # make it in touch with FileHandler class
-        self.config=Config                # make it in touch with Config class
+        self.file_handler = FileHandler     # make it in touch with FileHandler class
+        self.config = Config                # make it in touch with Config class
 
         self.filename=self.file_handler.filename   # for readability
         self.operation=self.config.chech_methods() # check if there are any method enabled
@@ -192,6 +207,10 @@ class Xml:
         return reshape(content)
 
     def reverse(self): # reverse arabic data
+
+        if self.file_handler.terminate:
+            return False
+        
         arabic_pattern = r'[\u0600-\u06FF\uFE00-\uFEFF](?:[\u0600-\u06FF\uFE00-\uFEFF \!\.\,]*[\u0600-\u06FF\uFE00-\uFEFF\!\.])?'
 
         if self.file_handler.check():
@@ -239,4 +258,5 @@ if __name__=="__main__":
     file_handler=FileHandler()
     config=Config()
     xml_file = Xml(file_handler,config)
-    xml_file.reverse()
+    if not xml_file.reverse():
+        print("\n\nCan't run the script because there are no supported file to work on!\n(.xml)")
